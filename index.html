@@ -118,6 +118,19 @@
         </div>
     </div>
 
+    <!-- Dialog di Conferma Uscita -->
+    <div id="confirm-exit-modal" class="overlay-screen hidden" style="z-index: 20;">
+        <div class="menu-glass-card modal-card">
+            <h2 class="modal-title">Sei sicuro?</h2>
+            <p class="modal-subtitle">Vuoi davvero uscire dalla stanza di gioco e tornare al menu principale?</p>
+            
+            <div style="display: flex; gap: 16px; width: 100%; margin-top: 8px;">
+                <button id="exit-confirm-yes" class="glow-button" style="background: linear-gradient(90deg, #ff007f 0%, #ff0055 100%); box-shadow: 0 4px 20px rgba(255, 0, 127, 0.3);">SI, ESCI</button>
+                <button id="exit-confirm-no" class="glow-button secondary-button" style="margin-top: 0;">NO, RIMANI</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Entry Point dell'applicazione -->
     <script type="module" src="js/main.js"></script>
 </body>

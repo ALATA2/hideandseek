@@ -34,6 +34,12 @@ class Game {
         this.closeLobbyBtn = document.getElementById('close-lobby-btn');
         this.roomsListContainer = document.getElementById('rooms-list-container');
         this.stopFindingRooms = null;
+
+        // Exit UI Refs
+        this.confirmExitModal = document.getElementById('confirm-exit-modal');
+        this.exitConfirmYes = document.getElementById('exit-confirm-yes');
+        this.exitConfirmNo = document.getElementById('exit-confirm-no');
+        this.isLoopRunning = false;
         
         this.initUI();
     }
@@ -99,6 +105,21 @@ class Game {
                 }
             }
         });
+
+        // Gestore del tasto Escape per aprire il menu di conferma uscita
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                // Mostra il menu di conferma solo se siamo in gioco (menu principale nascosto)
+                // e se il modal non è già aperto
+                if (this.mainMenu.classList.contains('hidden') && this.confirmExitModal.classList.contains('hidden')) {
+                    this.showConfirmExitModal();
+                }
+            }
+        });
+
+        // Configurazione pulsanti di conferma uscita
+        this.exitConfirmYes.addEventListener('click', () => this.exitGame());
+        this.exitConfirmNo.addEventListener('click', () => this.hideConfirmExitModal());
     }
 
     startGame() {
@@ -145,8 +166,11 @@ class Game {
             
             this.updateOnlineCount();
             
-            // Avvia Loop di Gioco principale
-            this.animate();
+            // Avvia Loop di Gioco principale (solo se non già in esecuzione)
+            if (!this.isLoopRunning) {
+                this.isLoopRunning = true;
+                this.animate();
+            }
         }, this.isPublicLobby);
     }
 
@@ -252,6 +276,70 @@ class Game {
             }
             this.updateOnlineCount();
         }, true);
+    }
+
+    showConfirmExitModal() {
+        this.confirmExitModal.classList.remove('hidden');
+        if (document.pointerLockElement === document.body) {
+            document.exitPointerLock();
+        }
+    }
+
+    hideConfirmExitModal() {
+        this.confirmExitModal.classList.add('hidden');
+        // Richiedi il pointer lock dopo una breve attesa dato che l'utente ha fatto click
+        setTimeout(() => {
+            if (document.pointerLockElement !== document.body && this.mainMenu.classList.contains('hidden')) {
+                document.body.requestPointerLock();
+            }
+        }, 100);
+    }
+
+    exitGame() {
+        this.confirmExitModal.classList.add('hidden');
+        this.isLoopRunning = false;
+        
+        // Scollega rete e distruggi peer
+        if (this.network) {
+            this.network.disconnectAll();
+        }
+        if (this.lobby) {
+            this.lobby.stopAnnouncing();
+        }
+        
+        // Rimuovi giocatori remoti
+        for (const peerId in this.remotePlayers) {
+            this.removeRemotePlayer(peerId);
+        }
+        this.remotePlayers = {};
+
+        // Rimuovi hash URL
+        window.location.hash = '';
+
+        // Distruggi Three.js engine
+        if (this.engine) {
+            const container = document.getElementById('canvas-container');
+            if (container) container.innerHTML = '';
+            this.engine = null;
+        }
+
+        this.input = null;
+        this.localPlayer = null;
+
+        // Ripristina UI
+        this.gameHud.classList.add('hidden');
+        this.mainMenu.classList.remove('hidden');
+
+        // Ripristina visualizzazione pulsanti
+        const joinPublicBtn = document.getElementById('join-public-btn');
+        const openWorldsBtn = document.getElementById('open-worlds-btn');
+        if (joinPublicBtn) joinPublicBtn.classList.remove('hidden');
+        if (openWorldsBtn) openWorldsBtn.classList.remove('hidden');
+
+        const roomInfoSec = document.getElementById('room-info-section');
+        if (roomInfoSec) roomInfoSec.classList.add('hidden');
+
+        this.showToast('Sei tornato al menu principale.', false);
     }
 
     copyShareLink() {
@@ -378,6 +466,7 @@ class Game {
 
     // Render loop del gioco
     animate() {
+        if (!this.isLoopRunning) return;
         requestAnimationFrame(() => this.animate());
 
         const dt = this.clock.getDelta();
