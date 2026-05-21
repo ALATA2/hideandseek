@@ -39,6 +39,9 @@ class Game {
         this.confirmExitModal = document.getElementById('confirm-exit-modal');
         this.exitConfirmYes = document.getElementById('exit-confirm-yes');
         this.exitConfirmNo = document.getElementById('exit-confirm-no');
+        this.menuExitBtn = document.getElementById('menu-exit-btn');
+        this.hudExitBtn = document.getElementById('hud-exit-btn');
+        this.isAppExit = false;
         this.isLoopRunning = false;
         
         this.initUI();
@@ -112,13 +115,33 @@ class Game {
                 // Mostra il menu di conferma solo se siamo in gioco (menu principale nascosto)
                 // e se il modal non è già aperto
                 if (this.mainMenu.classList.contains('hidden') && this.confirmExitModal.classList.contains('hidden')) {
-                    this.showConfirmExitModal();
+                    this.showConfirmExitModal(false);
                 }
             }
         });
 
+        // Cliccando sul tasto esci della home (menu principale)
+        if (this.menuExitBtn) {
+            this.menuExitBtn.addEventListener('click', () => {
+                this.showConfirmExitModal(true);
+            });
+        }
+
+        // Cliccando sul tasto esci dell'HUD (in gioco)
+        if (this.hudExitBtn) {
+            this.hudExitBtn.addEventListener('click', () => {
+                this.showConfirmExitModal(false);
+            });
+        }
+
         // Configurazione pulsanti di conferma uscita
-        this.exitConfirmYes.addEventListener('click', () => this.exitGame());
+        this.exitConfirmYes.addEventListener('click', () => {
+            if (this.isAppExit) {
+                this.exitApplication();
+            } else {
+                this.exitGame();
+            }
+        });
         this.exitConfirmNo.addEventListener('click', () => this.hideConfirmExitModal());
     }
 
@@ -278,11 +301,73 @@ class Game {
         }, true);
     }
 
-    showConfirmExitModal() {
+    showConfirmExitModal(isAppExit = false) {
+        this.isAppExit = isAppExit;
+        
+        const titleEl = this.confirmExitModal.querySelector('.modal-title');
+        const subtitleEl = this.confirmExitModal.querySelector('.modal-subtitle');
+        
+        if (isAppExit) {
+            titleEl.textContent = "Vuoi uscire?";
+            subtitleEl.textContent = "Vuoi uscire definitivamente dall'applicazione?";
+        } else {
+            titleEl.textContent = "Sei sicuro?";
+            subtitleEl.textContent = "Vuoi davvero uscire dalla stanza di gioco e tornare al menu principale?";
+        }
+
         this.confirmExitModal.classList.remove('hidden');
         if (document.pointerLockElement === document.body) {
             document.exitPointerLock();
         }
+    }
+
+    exitApplication() {
+        this.confirmExitModal.classList.add('hidden');
+        
+        // Prova a chiudere la scheda
+        window.close();
+        
+        // Fallback schermata di saluto interattiva/professionale per fiera
+        document.body.innerHTML = `
+            <div style="
+                display: flex; 
+                flex-direction: column; 
+                align-items: center; 
+                justify-content: center; 
+                height: 100vh; 
+                background: radial-gradient(circle at center, #1e1b4b 0%, #0f0728 100%); 
+                color: #ffffff; 
+                font-family: 'Outfit', sans-serif;
+                text-align: center;
+                padding: 20px;
+                box-sizing: border-box;
+            ">
+                <h1 style="
+                    font-size: 3.5rem; 
+                    font-weight: 800; 
+                    background: linear-gradient(135deg, #ff007f 0%, #7928ca 100%); 
+                    -webkit-background-clip: text; 
+                    -webkit-text-fill-color: transparent;
+                    margin: 0 0 16px 0;
+                    letter-spacing: -1px;
+                ">HIDE & SEEK</h1>
+                <p style="font-size: 1.3rem; color: #a5b4fc; font-weight: 500; margin: 0 0 30px 0;">
+                    Grazie per aver giocato! La sessione è terminata con successo.
+                </p>
+                <div style="
+                    background: rgba(255, 255, 255, 0.03); 
+                    border: 1px solid rgba(255, 255, 255, 0.08); 
+                    padding: 18px 36px; 
+                    border-radius: 16px;
+                    font-size: 0.95rem;
+                    color: #818cf8;
+                    backdrop-filter: blur(10px);
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                ">
+                    Puoi chiudere questa scheda del browser o ricaricare la pagina per ricominciare.
+                </div>
+            </div>
+        `;
     }
 
     hideConfirmExitModal() {

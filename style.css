@@ -657,3 +657,37 @@ html, body {
     font-style: italic;
 }
 
+.corner-exit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(255, 0, 85, 0.15);
+    border: 1px solid rgba(255, 0, 85, 0.3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #ff3366;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    width: fit-content;
+    z-index: 10;
+}
+
+.corner-exit-btn:hover {
+    background: rgba(255, 0, 85, 0.35);
+    color: #ffffff;
+    border-color: rgba(255, 0, 85, 0.6);
+    box-shadow: 0 4px 20px rgba(255, 0, 85, 0.4);
+    transform: translateY(-2px);
+}
+
+.corner-exit-btn:active {
+    transform: translateY(0);
+}
+
