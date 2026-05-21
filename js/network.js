@@ -1,4 +1,5 @@
-import { Peer } from 'https://esm.sh/peerjs@1.4.7';
+// Utilizza il costruttore Peer globale caricato via script in index.html
+const Peer = window.Peer;
 
 export class NetworkManager {
     constructor(game) {
@@ -23,9 +24,19 @@ export class NetworkManager {
     init(nickname, onReady) {
         this.nickname = nickname;
         
-        // Inizializza PeerJS sul server cloud pubblico predefinito
+        // Inizializza PeerJS sul server cloud pubblico con server STUN stabili e ridondati per aggirare i firewall
         this.peer = new Peer(undefined, {
-            debug: 1 // Solo errori in console per evitare spamming di log
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' },
+                    { urls: 'stun:stun3.l.google.com:19302' },
+                    { urls: 'stun:stun4.l.google.com:19302' },
+                    { urls: 'stun:stun.services.mozilla.com' }
+                ]
+            },
+            debug: 1 // Solo errori in console
         });
 
         // Quando la connessione al server di segnalazione è aperta
@@ -112,6 +123,13 @@ export class NetworkManager {
             if (this.isHost) {
                 this.sendPeerListTo(conn);
                 this.broadcastSystemMessage(`${conn.metadata.nickname || 'Un nuovo giocatore'} è entrato nella stanza.`);
+            } else {
+                // Se sono un Guest e mi sono connesso all'Host, aggiorna lo stato HUD
+                if (peerId === this.hostId) {
+                    this.game.showToast('Connessione stabilita con l\'Host!', false);
+                    const lobbyStatus = document.getElementById('lobby-status-text');
+                    if (lobbyStatus) lobbyStatus.textContent = 'Connesso a Stanza Remota';
+                }
             }
 
             // Notifica il gioco per istanziare l'avatar remoto

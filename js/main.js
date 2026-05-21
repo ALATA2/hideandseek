@@ -104,8 +104,8 @@ class Game {
                 shareBtn.classList.remove('hidden');
                 shareBtn.addEventListener('click', () => this.copyShareLink());
             } else {
-                lobbyStatus.textContent = 'Connesso a Stanza Remota';
-                this.showToast('Connessione stabilita con l\'host!', false);
+                lobbyStatus.textContent = 'Connessione all\'Host...';
+                this.showToast('Ricerca e connessione all\'Host in corso...', false);
             }
             
             this.updateOnlineCount();
