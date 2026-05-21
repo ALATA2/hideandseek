@@ -438,8 +438,22 @@ class Game {
 
     copyShareLink() {
         const link = this.network.getInviteLink();
+        
+        // Verifica se si sta ospitando su un indirizzo IP locale
+        const hostname = window.location.hostname;
+        const isLocal = hostname === 'localhost' || 
+                        hostname === '127.0.0.1' || 
+                        hostname === '::1' || 
+                        hostname.startsWith('192.168.') || 
+                        hostname.startsWith('10.') || 
+                        /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname);
+
         navigator.clipboard.writeText(link).then(() => {
-            this.showToast('Link stanza copiato nei appunti! Invalo a un amico.', false);
+            if (isLocal) {
+                this.showToast('Link copiato. ATTENZIONE: sei su rete locale. Gli utenti da dati mobili (4G/5G) non potranno accedere a questo link locale!', true);
+            } else {
+                this.showToast('Link stanza copiato nei appunti! Invialo a un amico.', false);
+            }
         }).catch(err => {
             console.error('Impossibile copiare il link:', err);
             this.showToast('Impossibile copiare il link automaticamente. Copialo dalla barra degli indirizzi.', true);

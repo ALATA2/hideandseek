@@ -50,7 +50,7 @@ export class NetworkManager {
                     { urls: 'stun:stun3.l.google.com:19302' },
                     { urls: 'stun:stun4.l.google.com:19302' },
                     { urls: 'stun:stun.services.mozilla.com' },
-                    // Open Relay Project (Free STUN & TURN servers for relaying behind symmetric NATs)
+                    // Open Relay Project (Free STUN & TURN/TURNS servers for relaying behind symmetric NATs)
                     { urls: 'stun:openrelay.metered.ca:80' },
                     {
                         urls: 'turn:openrelay.metered.ca:80',
@@ -64,6 +64,17 @@ export class NetworkManager {
                     },
                     {
                         urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                        username: 'openrelayproject',
+                        credential: 'openrelayproject'
+                    },
+                    // Secure TLS TURN servers (essential for HTTPS environments like GitHub Pages and mobile carriers)
+                    {
+                        urls: 'turns:openrelay.metered.ca:443',
+                        username: 'openrelayproject',
+                        credential: 'openrelayproject'
+                    },
+                    {
+                        urls: 'turns:openrelay.metered.ca:443?transport=tcp',
                         username: 'openrelayproject',
                         credential: 'openrelayproject'
                     }
@@ -207,6 +218,22 @@ export class NetworkManager {
             }
         }
 
+        // Avvia tracciamento diagnostico dello stato ICE per monitorare la connessione WebRTC
+        if (conn.peerConnection) {
+            this.setupIceStateTracking(conn);
+        } else {
+            let checkCount = 0;
+            const checkInterval = setInterval(() => {
+                checkCount++;
+                if (conn.peerConnection) {
+                    clearInterval(checkInterval);
+                    this.setupIceStateTracking(conn);
+                } else if (checkCount > 50) {
+                    clearInterval(checkInterval);
+                }
+            }, 100);
+        }
+
         conn.on('open', () => {
             console.log(`[P2P] Connesso con successo al peer: ${peerId}`);
             this.connections[peerId] = conn;
@@ -249,6 +276,28 @@ export class NetworkManager {
             console.error(`[P2P] Errore connessione con ${peerId}:`, err);
             this.removePeer(peerId);
         });
+    }
+
+    // Traccia lo stato della connessione ICE per diagnosticare problemi di rete (NAT/Firewall)
+    setupIceStateTracking(conn) {
+        const pc = conn.peerConnection;
+        const peerId = conn.peer;
+        const nickname = conn.metadata?.nickname || 'Giocatore';
+
+        console.log(`[P2P] Avviato monitoraggio ICE per peer: ${peerId}`);
+
+        const onStateChange = () => {
+            const state = pc.iceConnectionState;
+            console.log(`[P2P] Stato ICE per ${nickname} (${peerId}): ${state}`);
+            
+            if (state === 'failed') {
+                console.error(`[P2P] La connessione ICE tra client è fallita.`);
+                this.game.showToast(`Connessione P2P fallita con ${nickname}. Possibile blocco NAT/Firewall.`, true);
+            }
+        };
+
+        pc.addEventListener('iceconnectionstatechange', onStateChange);
+        onStateChange();
     }
 
     // L'Host inoltra la lista dei peer connessi al nuovo utente, permettendo la mesh automatica
