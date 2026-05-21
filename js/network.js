@@ -49,8 +49,10 @@ export class NetworkManager {
                 this.updateLobbyUrl();
                 onReady(true, id);
             } else {
-                console.log(`[P2P] Tentativo di connessione all'host: ${this.hostId}`);
-                this.connectToPeer(this.hostId);
+                console.log(`[P2P] Tentativo di connessione all'host (con ritardo di 1.2s per propagazione): ${this.hostId}`);
+                setTimeout(() => {
+                    this.connectToPeer(this.hostId);
+                }, 1200);
                 onReady(false, this.hostId);
             }
         });
