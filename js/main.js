@@ -27,6 +27,8 @@ class Game {
         this.gameHud = document.getElementById('game-hud');
         
         // Lobby UI Refs
+        this.isPublicLobby = false;
+        this.joinPublicBtn = document.getElementById('join-public-btn');
         this.openWorldsBtn = document.getElementById('open-worlds-btn');
         this.lobbyModal = document.getElementById('lobby-modal');
         this.closeLobbyBtn = document.getElementById('close-lobby-btn');
@@ -41,12 +43,29 @@ class Game {
         if (this.network.hostId && !this.network.isHost) {
             const roomInfo = document.getElementById('room-info-section');
             const hostDisplay = document.getElementById('target-host-display');
-            roomInfo.classList.remove('hidden');
-            hostDisplay.textContent = this.network.hostId.substring(0, 8) + '...';
+            if (roomInfo && hostDisplay) {
+                roomInfo.classList.remove('hidden');
+                hostDisplay.textContent = this.network.hostId.substring(0, 8) + '...';
+            }
+
+            // Nascondi pulsanti inutili se siamo entrati via invito diretto
+            if (this.joinPublicBtn) this.joinPublicBtn.classList.add('hidden');
+            if (this.openWorldsBtn) this.openWorldsBtn.classList.add('hidden');
         }
 
-        // Avvio del gioco al click su INIZIA
-        this.startBtn.addEventListener('click', () => this.startGame());
+        // Avvio del gioco al click su INIZIA (Stanza Privata)
+        this.startBtn.addEventListener('click', () => {
+            this.isPublicLobby = false;
+            this.startGame();
+        });
+
+        // Entra nel mondo pubblico
+        if (this.joinPublicBtn) {
+            this.joinPublicBtn.addEventListener('click', () => {
+                this.isPublicLobby = true;
+                this.startGame();
+            });
+        }
 
         // Gestione Modal Mondi Aperti
         this.openWorldsBtn.addEventListener('click', () => this.openLobbyModal());
@@ -128,7 +147,7 @@ class Game {
             
             // Avvia Loop di Gioco principale
             this.animate();
-        });
+        }, this.isPublicLobby);
     }
 
     openLobbyModal() {
@@ -202,6 +221,37 @@ class Game {
             
             this.roomsListContainer.appendChild(roomEl);
         });
+    }
+
+    reconnectToPublicLobby() {
+        // Rimuovi tutti i giocatori remoti correnti
+        for (const peerId in this.remotePlayers) {
+            this.removeRemotePlayer(peerId);
+        }
+        
+        // Scollega e distruggi il vecchio peer
+        this.network.disconnectAll();
+        
+        const lobbyStatus = document.getElementById('lobby-status-text');
+        if (lobbyStatus) lobbyStatus.textContent = 'Riconnessione...';
+        
+        this.showToast('Tentativo di riconnessione al lobby pubblico...', false);
+        
+        // Re-inizializza come lobby pubblico
+        this.network.init(this.localPlayer.nickname, (isHost, roomOwnerId) => {
+            const lobbyStatus = document.getElementById('lobby-status-text');
+            const shareBtn = document.getElementById('share-lobby-btn');
+
+            if (isHost) {
+                if (lobbyStatus) lobbyStatus.textContent = 'Host (Lobby Pubblica)';
+                if (shareBtn) shareBtn.classList.remove('hidden');
+                this.lobby.startAnnouncing(roomOwnerId, this.localPlayer.nickname);
+            } else {
+                if (lobbyStatus) lobbyStatus.textContent = 'Connesso a Stanza Pubblica';
+                if (shareBtn) shareBtn.classList.add('hidden');
+            }
+            this.updateOnlineCount();
+        }, true);
     }
 
     copyShareLink() {

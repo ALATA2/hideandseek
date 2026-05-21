@@ -10,22 +10,38 @@ export class NetworkManager {
         
         this.isHost = false;
         this.hostId = null;
-        
-        // Verifica se siamo entrati tramite link di invito
-        const hash = window.location.hash;
-        if (hash && hash.startsWith('#host=')) {
-            this.hostId = hash.replace('#host=', '');
-            this.isHost = false;
-        } else {
-            this.isHost = true;
-        }
+        this.isPublicLobby = false;
     }
 
-    init(nickname, onReady) {
+    init(nickname, onReady, isPublicLobby = false) {
         this.nickname = nickname;
+        this.isPublicLobby = isPublicLobby;
         
-        // Inizializza PeerJS sul server cloud pubblico con server STUN stabili e ridondati per aggirare i firewall
-        this.peer = new Peer(undefined, {
+        if (this.isPublicLobby) {
+            this.hostId = 'hideandseek-lobby-public-room-global';
+            this.isHost = false;
+        } else {
+            // Verifica se siamo entrati tramite link di invito
+            const hash = window.location.hash;
+            if (hash && hash.startsWith('#host=')) {
+                this.hostId = hash.replace('#host=', '');
+                this.isHost = false;
+            } else {
+                this.isHost = true;
+            }
+        }
+
+        this.startPeerConnection(onReady);
+    }
+
+    startPeerConnection(onReady, forceAsHost = false) {
+        const peerId = forceAsHost ? 'hideandseek-lobby-public-room-global' : undefined;
+        
+        if (this.peer) {
+            try { this.peer.destroy(); } catch(e) {}
+        }
+
+        this.peer = new Peer(peerId, {
             config: {
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
@@ -36,62 +52,106 @@ export class NetworkManager {
                     { urls: 'stun:stun.services.mozilla.com' }
                 ]
             },
-            debug: 1 // Solo errori in console
+            debug: 1
         });
 
-        // Quando la connessione al server di segnalazione è aperta
+        let connectionTimeout = null;
+        let hasConnected = false;
+
         this.peer.on('open', (id) => {
             this.myId = id;
             console.log(`[P2P] Il mio Peer ID: ${id}`);
             
-            if (this.isHost) {
+            if (id === 'hideandseek-lobby-public-room-global') {
+                this.isHost = true;
+                this.hostId = id;
+                this.updateLobbyUrl();
+                onReady(true, id);
+            } else if (this.isHost) {
                 this.hostId = id;
                 this.updateLobbyUrl();
                 onReady(true, id);
             } else {
                 console.log(`[P2P] Tentativo di connessione all'host (con ritardo di 1.2s per propagazione): ${this.hostId}`);
+                
+                if (this.isPublicLobby) {
+                    connectionTimeout = setTimeout(() => {
+                        if (!hasConnected) {
+                            console.log(`[P2P] Connessione al lobby pubblico scaduta. Provo ad autocandidarmi come Host...`);
+                            this.peer.destroy();
+                            this.startPeerConnection(onReady, true);
+                        }
+                    }, 5000);
+                }
+
                 setTimeout(() => {
-                    this.connectToPeer(this.hostId);
+                    if (this.peer && !this.peer.destroyed) {
+                        this.connectToPeer(this.hostId, (success) => {
+                            if (success) {
+                                hasConnected = true;
+                                if (connectionTimeout) clearTimeout(connectionTimeout);
+                            }
+                        });
+                    }
                 }, 1200);
                 onReady(false, this.hostId);
             }
         });
 
-        // Gestione delle connessioni in entrata (sia per host che per guest)
         this.peer.on('connection', (conn) => {
             this.setupConnection(conn);
         });
 
-        // Gestione degli errori
         this.peer.on('error', (err) => {
             console.error('[P2P] Errore PeerJS:', err);
             
             if (err.type === 'peer-unavailable') {
-                // Se eravamo Guest e l'Host a cui volevamo connetterci non è disponibile (es. link scaduto, host disconnesso/rinfrescato)
+                if (this.isPublicLobby && !this.isHost && err.message.includes('hideandseek-lobby-public-room-global')) {
+                    if (connectionTimeout) clearTimeout(connectionTimeout);
+                    if (!hasConnected) {
+                        console.log(`[P2P] Host pubblico non disponibile. Divento io l'Host...`);
+                        this.peer.destroy();
+                        this.startPeerConnection(onReady, true);
+                        return;
+                    }
+                }
+                
                 if (!this.isHost && this.hostId && err.message.includes(this.hostId)) {
                     console.log(`[P2P] Host non disponibile (${this.hostId}). Configuro questo client come nuovo Host.`);
                     this.isHost = true;
                     this.hostId = this.myId;
                     this.updateLobbyUrl();
-                    
                     this.game.promoteToHost();
-                    return; // Ignora l'errore standard
+                    return;
+                }
+            }
+
+            if (err.type === 'unavailable-id') {
+                if (this.isPublicLobby) {
+                    console.log(`[P2P] ID fisso già occupato. Ritorno a provare come Guest...`);
+                    this.isHost = false;
+                    this.startPeerConnection(onReady, false);
+                    return;
                 }
             }
             
             this.game.showToast(`Errore di rete: ${err.type}`, true);
         });
 
-        // Quando il peer viene disconnesso dal server di segnalazione
         this.peer.on('disconnected', () => {
-            console.warn('[P2P] Disconnesso dal server di segnalazione. Riconnessione in corso...');
-            this.peer.reconnect();
+            console.warn('[P2P] Disconnesso dal server di segnalazione.');
+            if (!this.peer.destroyed) {
+                this.peer.reconnect();
+            }
         });
     }
 
     // Crea una connessione in uscita verso un altro peer
-    connectToPeer(targetId) {
-        if (this.connections[targetId]) return; // Evita duplicati
+    connectToPeer(targetId, callback = null) {
+        if (this.connections[targetId]) {
+            if (callback) callback(true);
+            return;
+        }
         
         console.log(`[P2P] Connessione in uscita verso: ${targetId}`);
         const conn = this.peer.connect(targetId, {
@@ -99,6 +159,11 @@ export class NetworkManager {
         });
         
         this.setupConnection(conn);
+
+        if (callback) {
+            conn.on('open', () => callback(true));
+            conn.on('error', () => callback(false));
+        }
     }
 
     // Configura i listener di eventi su una connessione (in ingresso o in uscita)
@@ -146,6 +211,13 @@ export class NetworkManager {
         conn.on('close', () => {
             console.log(`[P2P] Connessione chiusa con il peer: ${peerId}`);
             this.removePeer(peerId);
+
+            // Riconnessione automatica nel lobby pubblico se l'Host si disconnette
+            if (this.isPublicLobby && !this.isHost && peerId === this.hostId) {
+                console.log("[P2P] Host pubblico chiuso. Avvio riconnessione...");
+                this.game.showToast("L'Host si è disconnesso. Riconnessione al Mondo Pubblico...", false);
+                this.game.reconnectToPublicLobby();
+            }
         });
 
         conn.on('error', (err) => {
