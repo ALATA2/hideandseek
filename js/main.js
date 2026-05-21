@@ -125,6 +125,22 @@ class Game {
         });
     }
 
+    promoteToHost() {
+        const lobbyStatus = document.getElementById('lobby-status-text');
+        const shareBtn = document.getElementById('share-lobby-btn');
+
+        if (lobbyStatus) lobbyStatus.textContent = 'Host (Stanza Ripristinata)';
+        if (shareBtn) {
+            shareBtn.classList.remove('hidden');
+            // Sostituisce il bottone con un suo clone per ripulire eventuali event listener precedenti
+            const newShareBtn = shareBtn.cloneNode(true);
+            shareBtn.parentNode.replaceChild(newShareBtn, shareBtn);
+            newShareBtn.addEventListener('click', () => this.copyShareLink());
+        }
+
+        this.showToast('L\'Host precedente non è raggiungibile. Ora sei tu l\'Host di questa stanza!', false);
+    }
+
     // Aggiunge un player remoto alla scena 3D
     addRemotePlayer(peerId, name, startPos) {
         if (this.remotePlayers[peerId]) return;

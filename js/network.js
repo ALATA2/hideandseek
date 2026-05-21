@@ -52,6 +52,20 @@ export class NetworkManager {
         // Gestione degli errori
         this.peer.on('error', (err) => {
             console.error('[P2P] Errore PeerJS:', err);
+            
+            if (err.type === 'peer-unavailable') {
+                // Se eravamo Guest e l'Host a cui volevamo connetterci non è disponibile (es. link scaduto, host disconnesso/rinfrescato)
+                if (!this.isHost && this.hostId && err.message.includes(this.hostId)) {
+                    console.log(`[P2P] Host non disponibile (${this.hostId}). Configuro questo client come nuovo Host.`);
+                    this.isHost = true;
+                    this.hostId = this.myId;
+                    this.updateLobbyUrl();
+                    
+                    this.game.promoteToHost();
+                    return; // Ignora l'errore standard
+                }
+            }
+            
             this.game.showToast(`Errore di rete: ${err.type}`, true);
         });
 

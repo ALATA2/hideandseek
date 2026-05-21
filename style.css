@@ -419,11 +419,19 @@ html, body {
         display: block;
     }
     
-    /* Sposta la chat più in alto per non sovrapporsi ai controlli su mobile */
+    /* Chat posizionata in basso a destra, alta la metà per non intralciare il joystick */
     #chat-container {
-        bottom: 120px;
-        left: 16px;
+        bottom: 20px;
+        right: 20px;
+        left: auto;
         width: 260px;
+        height: 45vh;
+        max-height: 280px;
+    }
+
+    #chat-messages {
+        flex-grow: 1;
+        height: auto;
     }
 }
 
