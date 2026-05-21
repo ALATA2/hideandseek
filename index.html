@@ -11,6 +11,8 @@
     <link rel="stylesheet" href="style.css">
     <!-- Carica PeerJS dal CDN ufficiale prima dell'importmap -->
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <!-- Carica MQTT.js per il matchmaking e la lista mondi aperti -->
+    <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
     <!-- Import Map per Three.js e moduli aggiuntivi -->
     <script type="importmap">
         {
@@ -42,6 +44,7 @@
             </div>
 
             <button id="start-btn" class="glow-button">INIZIA A GIOCARE</button>
+            <button id="open-worlds-btn" class="glow-button secondary-button">MONDI APERTI</button>
 
             <div class="footer-note">
                 Sviluppato con Three.js & PeerJS (P2P)
@@ -99,6 +102,20 @@
 
     <!-- Notifiche Toast in game -->
     <div id="toast-container"></div>
+
+    <!-- Modal Mondi Aperti -->
+    <div id="lobby-modal" class="overlay-screen hidden">
+        <div class="menu-glass-card modal-card">
+            <h2 class="modal-title">Mondi Aperti</h2>
+            <p class="modal-subtitle">Seleziona una stanza attiva per entrare senza invito</p>
+            
+            <div id="rooms-list-container">
+                <div class="no-rooms-message">Ricerca stanze in corso...</div>
+            </div>
+
+            <button id="close-lobby-btn" class="glow-button secondary-button">CHIUDI</button>
+        </div>
+    </div>
 
     <!-- Entry Point dell'applicazione -->
     <script type="module" src="js/main.js"></script>

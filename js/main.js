@@ -3,6 +3,7 @@ import { Engine } from './engine.js';
 import { InputHandler } from './input.js';
 import { LocalPlayer, RemotePlayer } from './player.js';
 import { NetworkManager } from './network.js';
+import { LobbyDiscovery } from './lobby.js';
 
 class Game {
     constructor() {
@@ -12,6 +13,7 @@ class Game {
         this.remotePlayers = {}; // Mappa dei player remoti indicizzati per Peer ID: { 'peerId': RemotePlayer }
         
         this.network = new NetworkManager(this);
+        this.lobby = new LobbyDiscovery();
         this.clock = new THREE.Clock();
         
         // Throttling di rete (20 FPS = 50ms)
@@ -23,6 +25,13 @@ class Game {
         this.nicknameInput = document.getElementById('nickname-input');
         this.startBtn = document.getElementById('start-btn');
         this.gameHud = document.getElementById('game-hud');
+        
+        // Lobby UI Refs
+        this.openWorldsBtn = document.getElementById('open-worlds-btn');
+        this.lobbyModal = document.getElementById('lobby-modal');
+        this.closeLobbyBtn = document.getElementById('close-lobby-btn');
+        this.roomsListContainer = document.getElementById('rooms-list-container');
+        this.stopFindingRooms = null;
         
         this.initUI();
     }
@@ -38,6 +47,10 @@ class Game {
 
         // Avvio del gioco al click su INIZIA
         this.startBtn.addEventListener('click', () => this.startGame());
+
+        // Gestione Modal Mondi Aperti
+        this.openWorldsBtn.addEventListener('click', () => this.openLobbyModal());
+        this.closeLobbyBtn.addEventListener('click', () => this.closeLobbyModal());
 
         // Supporto per invio premendo Invio nel campo Nickname
         this.nicknameInput.addEventListener('keydown', (e) => {
@@ -103,6 +116,9 @@ class Game {
                 // Mostra e configura il tasto di condivisione
                 shareBtn.classList.remove('hidden');
                 shareBtn.addEventListener('click', () => this.copyShareLink());
+
+                // Annuncia stanza su MQTT per la lista dei Mondi Aperti
+                this.lobby.startAnnouncing(roomOwnerId, nickname);
             } else {
                 lobbyStatus.textContent = 'Connessione all\'Host...';
                 this.showToast('Ricerca e connessione all\'Host in corso...', false);
@@ -112,6 +128,79 @@ class Game {
             
             // Avvia Loop di Gioco principale
             this.animate();
+        });
+    }
+
+    openLobbyModal() {
+        this.lobbyModal.classList.remove('hidden');
+        this.roomsListContainer.innerHTML = '<div class="no-rooms-message">Ricerca stanze in corso...</div>';
+        
+        // Connetti e ascolta le stanze attive via MQTT
+        this.stopFindingRooms = this.lobby.findRooms((activeRooms) => {
+            this.updateRoomsListUI(activeRooms);
+        });
+    }
+
+    closeLobbyModal() {
+        this.lobbyModal.classList.add('hidden');
+        if (this.stopFindingRooms) {
+            this.stopFindingRooms();
+            this.stopFindingRooms = null;
+        }
+    }
+
+    updateRoomsListUI(activeRooms) {
+        if (!activeRooms || activeRooms.length === 0) {
+            this.roomsListContainer.innerHTML = '<div class="no-rooms-message">Nessuna stanza attiva trovata al momento.</div>';
+            return;
+        }
+
+        this.roomsListContainer.innerHTML = '';
+        activeRooms.forEach(room => {
+            const roomEl = document.createElement('div');
+            roomEl.className = 'room-item';
+            
+            const roomInfo = document.createElement('div');
+            roomInfo.className = 'room-info';
+            
+            const roomHost = document.createElement('span');
+            roomHost.className = 'room-host';
+            roomHost.textContent = `Stanza di ${room.hostName}`;
+            
+            const roomId = document.createElement('span');
+            roomId.className = 'room-id';
+            roomId.textContent = `ID: ${room.peerId.substring(0, 12)}...`;
+            
+            roomInfo.appendChild(roomHost);
+            roomInfo.appendChild(roomId);
+            
+            const joinBtn = document.createElement('button');
+            joinBtn.className = 'room-join-btn';
+            joinBtn.textContent = 'UNISCITI';
+            
+            joinBtn.addEventListener('click', () => {
+                // Imposta il host target
+                this.network.hostId = room.peerId;
+                this.network.isHost = false;
+                window.location.hash = `#host=${room.peerId}`;
+                
+                // Mostra a schermo l'info della stanza target nel menu di avvio
+                const roomInfoSec = document.getElementById('room-info-section');
+                const hostDisplay = document.getElementById('target-host-display');
+                if (roomInfoSec && hostDisplay) {
+                    roomInfoSec.classList.remove('hidden');
+                    hostDisplay.textContent = room.hostName;
+                }
+                
+                // Chiudi il modal ed avvia il gioco
+                this.closeLobbyModal();
+                this.startGame();
+            });
+            
+            roomEl.appendChild(roomInfo);
+            roomEl.appendChild(joinBtn);
+            
+            this.roomsListContainer.appendChild(roomEl);
         });
     }
 
@@ -136,6 +225,11 @@ class Game {
             const newShareBtn = shareBtn.cloneNode(true);
             shareBtn.parentNode.replaceChild(newShareBtn, shareBtn);
             newShareBtn.addEventListener('click', () => this.copyShareLink());
+        }
+
+        // Annuncia la nostra stanza su MQTT dato che siamo diventati Host
+        if (this.lobby) {
+            this.lobby.startAnnouncing(this.network.myId, this.localPlayer.nickname);
         }
 
         this.showToast('L\'Host precedente non è raggiungibile. Ora sei tu l\'Host di questa stanza!', false);
