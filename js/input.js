@@ -39,7 +39,16 @@ export class InputHandler {
             // Attiva pointer lock solo se il menu principale è già nascosto (il gioco è iniziato)
             const mainMenu = document.getElementById('main-menu');
             if (mainMenu && mainMenu.classList.contains('hidden') && document.pointerLockElement !== document.body) {
-                document.body.requestPointerLock();
+                try {
+                    const promise = document.body.requestPointerLock();
+                    if (promise && typeof promise.catch === 'function') {
+                        promise.catch(err => {
+                            console.warn("[Input] Pointer lock temporaneamente rifiutato dal browser:", err.message);
+                        });
+                    }
+                } catch (err) {
+                    console.warn("[Input] Errore Pointer lock:", err);
+                }
             }
         });
 

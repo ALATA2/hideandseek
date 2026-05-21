@@ -375,7 +375,16 @@ class Game {
         // Richiedi il pointer lock dopo una breve attesa dato che l'utente ha fatto click
         setTimeout(() => {
             if (document.pointerLockElement !== document.body && this.mainMenu.classList.contains('hidden')) {
-                document.body.requestPointerLock();
+                try {
+                    const promise = document.body.requestPointerLock();
+                    if (promise && typeof promise.catch === 'function') {
+                        promise.catch(err => {
+                            console.warn("[Input] Pointer lock temporaneamente rifiutato dal browser:", err.message);
+                        });
+                    }
+                } catch (err) {
+                    console.warn("[Input] Errore Pointer lock:", err);
+                }
             }
         }, 100);
     }
