@@ -52,7 +52,7 @@ export class NetworkManager {
                     { urls: 'stun:stun.services.mozilla.com' }
                 ]
             },
-            debug: 1
+            debug: 0
         });
 
         let connectionTimeout = null;
@@ -103,7 +103,15 @@ export class NetworkManager {
         });
 
         this.peer.on('error', (err) => {
-            console.error('[P2P] Errore PeerJS:', err);
+            const isExpectedLobbyError = err.type === 'peer-unavailable' && 
+                ((this.isPublicLobby && err.message.includes('hideandseek-lobby-public-room-global')) || 
+                 (!this.isHost && this.hostId && err.message.includes(this.hostId)));
+
+            if (isExpectedLobbyError) {
+                console.log(`[P2P] Peer non disponibile (previsto per fallback): ${err.message}`);
+            } else {
+                console.error('[P2P] Errore PeerJS:', err);
+            }
             
             if (err.type === 'peer-unavailable') {
                 if (this.isPublicLobby && !this.isHost && err.message.includes('hideandseek-lobby-public-room-global')) {
