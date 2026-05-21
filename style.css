@@ -691,3 +691,9 @@ html, body {
     transform: translateY(0);
 }
 
+#menu-exit-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+}
+
