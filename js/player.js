@@ -50,44 +50,83 @@ function createNicknameSprite(nickname) {
     return sprite;
 }
 
-// Funzione per creare la mesh dell'avatar (Low-Poly Cyber-Style)
+// Funzione per creare la mesh dell'avatar (Spirito/Anima al neon)
 function createAvatarMesh(colorHex) {
-    const group = new THREE.Group();
+    const mainGroup = new THREE.Group();
 
-    // 1. Corpo principale (Capsula/Cilindro low-poly)
-    const bodyGeo = new THREE.CylinderGeometry(0.5, 0.5, 1.6, 6);
-    const bodyMat = new THREE.MeshStandardMaterial({
+    // Gruppo per gli elementi visivi che fluttuano e si animano
+    const spiritGroup = new THREE.Group();
+    spiritGroup.name = "spiritGroup";
+    mainGroup.add(spiritGroup);
+
+    // 1. Nucleo centrale (Sfera luminosa dell'anima)
+    const coreGeo = new THREE.SphereGeometry(0.3, 16, 16);
+    const coreMat = new THREE.MeshStandardMaterial({
         color: colorHex,
-        roughness: 0.4,
-        metalness: 0.2,
-        flatShading: true
+        emissive: colorHex,
+        emissiveIntensity: 2.0,
+        roughness: 0.1,
+        metalness: 0.1
     });
-    const body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 0.8;
-    body.castShadow = true;
-    body.receiveShadow = true;
-    group.add(body);
+    const core = new THREE.Mesh(coreGeo, coreMat);
+    core.position.y = 0.8;
+    core.castShadow = true;
+    core.receiveShadow = true;
+    spiritGroup.add(core);
 
-    // 2. Visore direzionale (per capire dove guarda il giocatore)
-    const visorGeo = new THREE.BoxGeometry(0.6, 0.2, 0.3);
-    const visorMat = new THREE.MeshStandardMaterial({
-        color: 0x00f0ff,
-        emissive: 0x00f0ff,
-        emissiveIntensity: 1.0,
-        roughness: 0.1
+    // 2. Aura esterna (Icosaedro wireframe cangiante)
+    const auraGeo = new THREE.IcosahedronGeometry(0.55, 1);
+    const auraMat = new THREE.MeshBasicMaterial({
+        color: colorHex,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.4
+    });
+    const aura = new THREE.Mesh(auraGeo, auraMat);
+    aura.position.y = 0.8;
+    aura.name = "aura";
+    spiritGroup.add(aura);
+
+    // 3. Anelli orbitali energetici al neon (Torus)
+    const ring1Geo = new THREE.TorusGeometry(0.65, 0.015, 8, 32);
+    const ringMat1 = new THREE.MeshBasicMaterial({
+        color: colorHex,
+        transparent: true,
+        opacity: 0.6,
+        side: THREE.DoubleSide
+    });
+    const ring1 = new THREE.Mesh(ring1Geo, ringMat1);
+    ring1.position.y = 0.8;
+    ring1.name = "ring1";
+    ring1.rotation.x = Math.PI / 4;
+    spiritGroup.add(ring1);
+
+    const ring2Geo = new THREE.TorusGeometry(0.65, 0.015, 8, 32);
+    const ringMat2 = new THREE.MeshBasicMaterial({
+        color: colorHex,
+        transparent: true,
+        opacity: 0.6,
+        side: THREE.DoubleSide
+    });
+    const ring2 = new THREE.Mesh(ring2Geo, ringMat2);
+    ring2.position.y = 0.8;
+    ring2.name = "ring2";
+    ring2.rotation.x = -Math.PI / 4;
+    ring2.rotation.y = Math.PI / 2;
+    spiritGroup.add(ring2);
+
+    // 4. Visore/Faro di direzione frontale (Sferetta bianca luminosa a z = 0.45)
+    const visorGeo = new THREE.SphereGeometry(0.08, 8, 8);
+    const visorMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.9
     });
     const visor = new THREE.Mesh(visorGeo, visorMat);
-    visor.position.set(0, 1.2, 0.4); // Posizionato davanti all'altezza degli occhi
-    group.add(visor);
+    visor.position.set(0, 0.8, 0.45);
+    spiritGroup.add(visor);
 
-    // 3. Dettaglio decorativo neon
-    const bandGeo = new THREE.CylinderGeometry(0.51, 0.51, 0.1, 6);
-    const bandMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
-    const band = new THREE.Mesh(bandGeo, bandMat);
-    band.position.y = 0.6;
-    group.add(band);
-
-    return group;
+    return mainGroup;
 }
 
 // --- CLASSE GIOCATORE LOCALE ---
@@ -100,9 +139,10 @@ export class LocalPlayer {
         this.rotationY = 0;
         this.speed = 8.0; // Unità al secondo
         this.radius = 0.6; // Raggio del collision cylinder
+        this.bobbingTime = Math.random() * 100; // Offset casuale per desincronizzare il bobbing
 
-        // Inizializza l'avatar 3D
-        this.mesh = createAvatarMesh(0xa855f7); // Colore viola per il giocatore locale
+        // Inizializza l'avatar 3D (Colore azzurro/cyan al neon per il giocatore locale)
+        this.mesh = createAvatarMesh(0x00f0ff);
         this.mesh.position.copy(this.position);
         this.scene.add(this.mesh);
 
@@ -171,6 +211,33 @@ export class LocalPlayer {
 
         // Aggiorna posizione locale basata sulla mesh
         this.position.copy(this.mesh.position);
+
+        // Accumula il tempo per il bobbing e le rotazioni
+        this.bobbingTime += dt;
+
+        // Aggiorna animazioni dello spirito locale
+        const spiritGroup = this.mesh.getObjectByName("spiritGroup");
+        if (spiritGroup) {
+            // Bobbing verticale continuo dell'avatar spirito
+            spiritGroup.position.y = Math.sin(this.bobbingTime * 2.5) * 0.12;
+            
+            // Rotazioni degli anelli ed aura
+            const ring1 = spiritGroup.getObjectByName("ring1");
+            if (ring1) {
+                ring1.rotation.z += 1.0 * dt;
+                ring1.rotation.x += 0.5 * dt;
+            }
+            const ring2 = spiritGroup.getObjectByName("ring2");
+            if (ring2) {
+                ring2.rotation.z -= 1.2 * dt;
+                ring2.rotation.y += 0.6 * dt;
+            }
+            const aura = spiritGroup.getObjectByName("aura");
+            if (aura) {
+                aura.rotation.y += 0.3 * dt;
+                aura.rotation.x -= 0.15 * dt;
+            }
+        }
 
         // 3. Posiziona e orienta la telecamera in terza persona
         const cameraDistance = 7.0;
@@ -261,6 +328,7 @@ export class RemotePlayer {
         // Posizioni target per l'interpolazione fluida
         this.targetPosition = new THREE.Vector3().copy(startPos);
         this.targetRotationY = 0;
+        this.bobbingTime = Math.random() * 100; // Offset casuale per desincronizzare il bobbing
 
         // Inizializza l'avatar 3D (Colore rosa neon per gli altri giocatori)
         this.mesh = createAvatarMesh(0xec4899);
@@ -286,6 +354,33 @@ export class RemotePlayer {
         diff = Math.atan2(Math.sin(diff), Math.cos(diff));
         
         this.mesh.rotation.y += diff * lerpFactor;
+
+        // Accumula il tempo per il bobbing e le rotazioni
+        this.bobbingTime += dt;
+
+        // Aggiorna animazioni dello spirito remoto
+        const spiritGroup = this.mesh.getObjectByName("spiritGroup");
+        if (spiritGroup) {
+            // Bobbing verticale continuo
+            spiritGroup.position.y = Math.sin(this.bobbingTime * 2.5) * 0.12;
+            
+            // Rotazioni degli anelli ed aura
+            const ring1 = spiritGroup.getObjectByName("ring1");
+            if (ring1) {
+                ring1.rotation.z += 1.0 * dt;
+                ring1.rotation.x += 0.5 * dt;
+            }
+            const ring2 = spiritGroup.getObjectByName("ring2");
+            if (ring2) {
+                ring2.rotation.z -= 1.2 * dt;
+                ring2.rotation.y += 0.6 * dt;
+            }
+            const aura = spiritGroup.getObjectByName("aura");
+            if (aura) {
+                aura.rotation.y += 0.3 * dt;
+                aura.rotation.x -= 0.15 * dt;
+            }
+        }
     }
 
     setTransform(pos, rotY) {
