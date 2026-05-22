@@ -17,7 +17,8 @@ export class InputHandler {
             ArrowUp: false,
             ArrowDown: false,
             ArrowLeft: false,
-            ArrowRight: false
+            ArrowRight: false,
+            Space: false
         };
 
         this.isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
@@ -57,6 +58,9 @@ export class InputHandler {
             if (e.code in this.keys) {
                 this.keys[e.code] = true;
                 this.updatePCMoveVector();
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                }
             }
         });
 
@@ -64,6 +68,9 @@ export class InputHandler {
             if (e.code in this.keys) {
                 this.keys[e.code] = false;
                 this.updatePCMoveVector();
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                }
             }
         });
 
@@ -233,5 +240,19 @@ export class InputHandler {
 
         window.addEventListener('touchend', onLookEnd);
         window.addEventListener('touchcancel', onLookEnd);
+
+        // --- PULSANTE SALTO MOBILE ---
+        const jumpBtn = document.getElementById('mobile-jump-btn');
+        if (jumpBtn) {
+            jumpBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.keys.Space = true;
+            }, { passive: false });
+            
+            jumpBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                this.keys.Space = false;
+            });
+        }
     }
 }

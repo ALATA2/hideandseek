@@ -697,3 +697,40 @@ html, body {
     left: 20px;
 }
 
+/* Pulsante Salto per dispositivi Mobile */
+#mobile-jump-btn {
+    position: absolute;
+    bottom: 300px;
+    right: 20px;
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(0, 240, 255, 0.4);
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+    color: #ffffff;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: auto;
+    backdrop-filter: blur(8px);
+    user-select: none;
+    -webkit-user-select: none;
+    z-index: 10;
+    transition: transform 0.1s ease, border-color 0.2s, background-color 0.2s;
+    cursor: pointer;
+}
+
+#mobile-jump-btn:active {
+    transform: scale(0.9);
+    border-color: #00f0ff;
+    background: rgba(0, 240, 255, 0.25);
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+}
+
+

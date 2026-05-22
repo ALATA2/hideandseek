@@ -109,6 +109,12 @@ export class LocalPlayer {
         // Aggiungi Nickname sopra la testa
         this.nicknameSprite = createNicknameSprite(nickname);
         this.mesh.add(this.nicknameSprite);
+
+        // Parametri per il salto (saltello)
+        this.velocityY = 0;
+        this.gravity = 25.0; // Forza di gravità
+        this.jumpStrength = 9.0; // Spinta iniziale del salto
+        this.isGrounded = true;
     }
 
     update(dt, input, obstacles, camera) {
@@ -135,6 +141,24 @@ export class LocalPlayer {
             const targetRotation = Math.atan2(moveDirection.x, moveDirection.z);
             this.rotationY = targetRotation;
             this.mesh.rotation.y = THREE.MathUtils.lerp(this.mesh.rotation.y, targetRotation, 0.2);
+        }
+
+        // Gestione Fisica del Salto (Saltello)
+        if (input.keys.Space && this.isGrounded) {
+            this.velocityY = this.jumpStrength;
+            this.isGrounded = false;
+        }
+
+        if (!this.isGrounded) {
+            this.velocityY -= this.gravity * dt;
+            this.mesh.position.y += this.velocityY * dt;
+
+            // Collisione con il pavimento (livello 0)
+            if (this.mesh.position.y <= 0) {
+                this.mesh.position.y = 0;
+                this.velocityY = 0;
+                this.isGrounded = true;
+            }
         }
 
         // Aggiorna posizione locale basata sulla mesh
