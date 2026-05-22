@@ -22,6 +22,52 @@
             }
         }
     </script>
+    <script>
+        // Log di diagnostica di rete in tempo reale
+        window.debugLogs = [];
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+
+        function addDebugLog(type, ...args) {
+            const msg = args.map(arg => {
+                if (arg instanceof Error) return arg.message + '\n' + arg.stack;
+                return typeof arg === 'object' ? JSON.stringify(arg) : String(arg);
+            }).join(' ');
+            
+            window.debugLogs.push({ type, msg, time: new Date().toLocaleTimeString() });
+            
+            const container = document.getElementById('debug-log-content');
+            if (container) {
+                const line = document.createElement('div');
+                line.style.whiteSpace = 'pre-wrap';
+                line.style.wordBreak = 'break-all';
+                line.style.paddingBottom = '4px';
+                line.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+                
+                if (type === 'ERROR') line.style.color = '#f87171';
+                else if (type === 'WARN') line.style.color = '#fbbf24';
+                else line.style.color = '#a5b4fc';
+
+                line.textContent = `[${new Date().toLocaleTimeString()}] [${type}] ${msg}`;
+                container.appendChild(line);
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        console.log = (...args) => {
+            originalLog.apply(console, args);
+            addDebugLog('LOG', ...args);
+        };
+        console.warn = (...args) => {
+            originalWarn.apply(console, args);
+            addDebugLog('WARN', ...args);
+        };
+        console.error = (...args) => {
+            originalError.apply(console, args);
+            addDebugLog('ERROR', ...args);
+        };
+    </script>
 </head>
 <body>
     <!-- Container per il Canvas 3D -->
@@ -80,8 +126,21 @@
         </div>
 
         <div class="hud-top-right">
-            <div class="hud-card">
+            <div class="hud-card" style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
                 <div>Giocatori online: <span id="online-count">1</span></div>
+                <button id="toggle-debug-btn" class="glow-button" style="
+                    margin-top: 0; 
+                    padding: 6px 12px; 
+                    font-size: 0.7rem; 
+                    border-radius: 6px; 
+                    background: rgba(255, 255, 255, 0.05); 
+                    border: 1px solid rgba(255, 255, 255, 0.1); 
+                    color: var(--primary-glow); 
+                    box-shadow: none;
+                    height: auto;
+                    width: auto;
+                    line-height: 1;
+                ">DIAGNOSTICA RETE</button>
             </div>
         </div>
 
@@ -136,6 +195,34 @@
                 <button id="exit-confirm-yes" class="glow-button" style="background: linear-gradient(90deg, #ff007f 0%, #ff0055 100%); box-shadow: 0 4px 20px rgba(255, 0, 127, 0.3);">SI, ESCI</button>
                 <button id="exit-confirm-no" class="glow-button secondary-button" style="margin-top: 0;">NO, RIMANI</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Console di Debug Diagnostica -->
+    <div id="debug-console" class="overlay-screen hidden" style="z-index: 100;">
+        <div class="menu-glass-card modal-card" style="max-width: 600px; height: 75vh; display: flex; flex-direction: column;">
+            <h2 class="modal-title" style="font-size: 1.8rem; margin-bottom: 2px;">Diagnostica Connessione</h2>
+            <p class="modal-subtitle" style="margin-bottom: 8px;">Log in tempo reale per identificare errori WebRTC/NAT su mobile</p>
+            
+            <div id="debug-log-content" style="
+                flex-grow: 1; 
+                overflow-y: auto; 
+                background: rgba(0,0,0,0.45); 
+                border: 1px solid var(--card-border); 
+                border-radius: 8px; 
+                padding: 12px; 
+                font-family: monospace; 
+                font-size: 0.75rem; 
+                color: #e0e0ff; 
+                text-align: left;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            ">
+                <!-- I log verranno inseriti dinamicamente qui -->
+            </div>
+            
+            <button id="close-debug-btn" class="glow-button secondary-button" style="margin-top: 12px;">CHIUDI</button>
         </div>
     </div>
 

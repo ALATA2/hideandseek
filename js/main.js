@@ -44,6 +44,11 @@ class Game {
         this.isAppExit = false;
         this.isLoopRunning = false;
         
+        // Debug/Diagnostics UI Refs
+        this.debugConsole = document.getElementById('debug-console');
+        this.toggleDebugBtn = document.getElementById('toggle-debug-btn');
+        this.closeDebugBtn = document.getElementById('close-debug-btn');
+        
         this.initUI();
     }
 
@@ -143,6 +148,54 @@ class Game {
             }
         });
         this.exitConfirmNo.addEventListener('click', () => this.hideConfirmExitModal());
+        
+        // Diagnostics console events
+        if (this.toggleDebugBtn) {
+            this.toggleDebugBtn.addEventListener('click', () => {
+                this.debugConsole.classList.remove('hidden');
+                // Fill with pre-existing logs if they occurred before UI was created
+                const container = document.getElementById('debug-log-content');
+                if (container && window.debugLogs && container.children.length === 0) {
+                    window.debugLogs.forEach(item => {
+                        const line = document.createElement('div');
+                        line.style.whiteSpace = 'pre-wrap';
+                        line.style.wordBreak = 'break-all';
+                        line.style.paddingBottom = '4px';
+                        line.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+                        
+                        if (item.type === 'ERROR') line.style.color = '#f87171';
+                        else if (item.type === 'WARN') line.style.color = '#fbbf24';
+                        else line.style.color = '#a5b4fc';
+
+                        line.textContent = `[${item.time}] [${item.type}] ${item.msg}`;
+                        container.appendChild(line);
+                    });
+                    container.scrollTop = container.scrollHeight;
+                }
+                
+                // Rilascia pointer lock se attivo per consentire interazione
+                if (document.pointerLockElement === document.body) {
+                    document.exitPointerLock();
+                }
+            });
+        }
+        
+        if (this.closeDebugBtn) {
+            this.closeDebugBtn.addEventListener('click', () => {
+                this.debugConsole.classList.add('hidden');
+                // Richiedi il pointer lock dopo una breve attesa se siamo in gioco
+                setTimeout(() => {
+                    if (document.pointerLockElement !== document.body && this.mainMenu.classList.contains('hidden')) {
+                        try {
+                            const promise = document.body.requestPointerLock();
+                            if (promise && typeof promise.catch === 'function') {
+                                promise.catch(() => {});
+                            }
+                        } catch (err) {}
+                    }
+                }, 100);
+            });
+        }
     }
 
     startGame() {
