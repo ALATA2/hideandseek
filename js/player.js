@@ -150,10 +150,15 @@ export class LocalPlayer {
         }
 
         if (!this.isGrounded) {
-            // Se sta salendo e NON tiene premuto Spazio, applichiamo una gravità maggiore per tagliare corto il salto (sfioramento)
-            const currentGravity = (this.velocityY > 0 && !input.keys.Space) ? (this.gravity * 2.4) : this.gravity;
+            // Se rilasciamo la barra Spazio (o il tocco) mentre stiamo salendo, 
+            // tagliamo immediatamente la velocità verticale ad un limite inferiore (minJumpVelocity).
+            // Questo rende il saltello breve nettamente distinguibile rispetto al salto completo.
+            const cutOffVelocity = this.jumpStrength * 0.35; // ~3.15
+            if (!input.keys.Space && this.velocityY > cutOffVelocity) {
+                this.velocityY = cutOffVelocity;
+            }
             
-            this.velocityY -= currentGravity * dt;
+            this.velocityY -= this.gravity * dt;
             this.mesh.position.y += this.velocityY * dt;
 
             // Collisione con il pavimento (livello 0)
