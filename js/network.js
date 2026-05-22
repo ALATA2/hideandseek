@@ -44,35 +44,15 @@ export class NetworkManager {
         this.peer = new Peer(peerId, {
             config: {
                 iceServers: [
+                    // Google STUN per connessioni dirette veloci
                     { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'stun:stun2.l.google.com:19302' },
-                    { urls: 'stun:stun3.l.google.com:19302' },
-                    { urls: 'stun:stun4.l.google.com:19302' },
-                    { urls: 'stun:stun.services.mozilla.com' },
-                    // Open Relay Project (Free STUN & TURN/TURNS servers for relaying behind symmetric NATs)
-                    { urls: 'stun:openrelay.metered.ca:80' },
-                    {
-                        urls: 'turn:openrelay.metered.ca:80',
-                        username: 'openrelayproject',
-                        credential: 'openrelayproject'
-                    },
-                    {
-                        urls: 'turn:openrelay.metered.ca:443',
-                        username: 'openrelayproject',
-                        credential: 'openrelayproject'
-                    },
-                    {
-                        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-                        username: 'openrelayproject',
-                        credential: 'openrelayproject'
-                    },
-                    // Secure TLS TURN servers (essential for HTTPS environments like GitHub Pages and mobile carriers)
+                    // Open Relay TLS TURN su UDP (essenziale per contesti HTTPS)
                     {
                         urls: 'turns:openrelay.metered.ca:443',
                         username: 'openrelayproject',
                         credential: 'openrelayproject'
                     },
+                    // Open Relay TLS TURN su TCP (bypass totale per NAT simmetrici e firewall carrier)
                     {
                         urls: 'turns:openrelay.metered.ca:443?transport=tcp',
                         username: 'openrelayproject',
@@ -297,6 +277,24 @@ export class NetworkManager {
         };
 
         pc.addEventListener('iceconnectionstatechange', onStateChange);
+        
+        pc.addEventListener('icecandidateerror', (event) => {
+            console.warn(`[P2P] Errore candidato ICE per ${nickname}: Codice=${event.errorCode}, Testo=${event.errorText || 'Nessuno'}, Server=${event.url || 'Sconosciuto'}`);
+        });
+
+        pc.addEventListener('icegatheringstatechange', () => {
+            console.log(`[P2P] Stato raccolta candidati ICE per ${nickname}: ${pc.iceGatheringState}`);
+        });
+
+        pc.addEventListener('icecandidate', (event) => {
+            if (event.candidate) {
+                const c = event.candidate;
+                console.log(`[P2P] Candidato ICE trovato per ${nickname}: Tipo=${c.type || 'Sconosciuto'}, Protocollo=${c.protocol || 'Sconosciuto'}, Indirizzo=${c.address || 'N/A'}`);
+            } else {
+                console.log(`[P2P] Raccolta candidati ICE completata per ${nickname}.`);
+            }
+        });
+
         onStateChange();
     }
 

@@ -48,6 +48,8 @@ class Game {
         this.debugConsole = document.getElementById('debug-console');
         this.toggleDebugBtn = document.getElementById('toggle-debug-btn');
         this.closeDebugBtn = document.getElementById('close-debug-btn');
+        this.copyDebugBtn = document.getElementById('copy-debug-btn');
+        this.downloadDebugBtn = document.getElementById('download-debug-btn');
         
         this.initUI();
     }
@@ -194,6 +196,43 @@ class Game {
                         } catch (err) {}
                     }
                 }, 100);
+            });
+        }
+        
+        if (this.copyDebugBtn) {
+            this.copyDebugBtn.addEventListener('click', () => {
+                const logText = window.debugLogs ? window.debugLogs.map(item => `[${item.time}] [${item.type}] ${item.msg}`).join('\n') : '';
+                navigator.clipboard.writeText(logText).then(() => {
+                    this.showToast('Log copiati negli appunti!', false);
+                }).catch(err => {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = logText;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        this.showToast('Log copiati negli appunti!', false);
+                    } catch (e) {
+                        this.showToast('Errore copia negli appunti', true);
+                    }
+                    document.body.removeChild(textArea);
+                });
+            });
+        }
+
+        if (this.downloadDebugBtn) {
+            this.downloadDebugBtn.addEventListener('click', () => {
+                const logText = window.debugLogs ? window.debugLogs.map(item => `[${item.time}] [${item.type}] ${item.msg}`).join('\n') : '';
+                const blob = new Blob([logText], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `debug_log_${new Date().toISOString().slice(0,10)}_${new Date().toTimeString().slice(0,8).replace(/:/g,'-')}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                this.showToast('Download log avviato!', false);
             });
         }
     }
