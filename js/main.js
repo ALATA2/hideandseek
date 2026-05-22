@@ -690,8 +690,9 @@ class Game {
             this.syncTimer = 0;
         }
 
-        // 4. Renderizzazione scena 3D
+        // 4. Aggiorna e renderizza la scena 3D (scorrimento acqua)
         if (this.engine) {
+            this.engine.update(dt);
             this.engine.render();
         }
     }

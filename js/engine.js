@@ -101,17 +101,68 @@ export class Engine {
         gridHelper.material.transparent = true;
         this.scene.add(gridHelper);
 
-        // 3. Fiume Neon che attraversa la mappa di lato (a x = 25)
+        // 3. Fiume Neon con texture procedurale scorrevole
         const riverWidth = 8;
         const riverGeo = new THREE.PlaneGeometry(riverWidth, floorSize);
+        
+        // Genera texture procedurale per l'acqua corrente al neon
+        const riverCanvas = document.createElement('canvas');
+        riverCanvas.width = 256;
+        riverCanvas.height = 256;
+        const rCtx = riverCanvas.getContext('2d');
+
+        // Sfondo scuro per dare profondità
+        rCtx.fillStyle = '#000c18';
+        rCtx.fillRect(0, 0, 256, 256);
+
+        const drawWave = (color, width, speedOffset, waveHeight, frequency) => {
+            rCtx.strokeStyle = color;
+            rCtx.lineWidth = width;
+            rCtx.beginPath();
+            for (let x = 0; x <= 256; x += 4) {
+                const angle = (x / 256) * Math.PI * 2 * frequency + speedOffset;
+                const y = 128 + Math.sin(angle) * waveHeight;
+                
+                for (let offset = -128; offset <= 256; offset += 64) {
+                    const drawY = (y + offset + 256) % 256;
+                    if (x === 0) {
+                        rCtx.moveTo(x, drawY);
+                    } else {
+                        const prevAngle = ((x - 4) / 256) * Math.PI * 2 * frequency + speedOffset;
+                        const prevY = (128 + Math.sin(prevAngle) * waveHeight + offset + 256) % 256;
+                        if (Math.abs(drawY - prevY) < 100) {
+                            rCtx.lineTo(x, drawY);
+                        } else {
+                            rCtx.moveTo(x, drawY);
+                        }
+                    }
+                }
+            }
+            rCtx.stroke();
+        };
+
+        // Correnti sovrapposte per profondità ed effetto scorrimento naturale
+        drawWave('rgba(0, 240, 255, 0.35)', 2.5, 0, 15, 2);   // Corrente azzurra principale
+        drawWave('rgba(0, 100, 255, 0.25)', 5, Math.PI / 3, 10, 3); // Flusso blu profondo
+        drawWave('rgba(236, 72, 153, 0.15)', 4, Math.PI / 1.5, 8, 1); // Riflessi rosa al neon
+
+        this.riverTexture = new THREE.CanvasTexture(riverCanvas);
+        this.riverTexture.wrapS = THREE.RepeatWrapping;
+        this.riverTexture.wrapT = THREE.RepeatWrapping;
+        this.riverTexture.repeat.set(1, 8); // Ripete lungo l'asse del fiume
+
         const riverMat = new THREE.MeshStandardMaterial({
-            color: 0x006699,
-            emissive: 0x002244,
-            roughness: 0.05,
-            metalness: 0.9,
+            color: 0x002244,
+            map: this.riverTexture,
+            emissive: 0x003355,
+            emissiveMap: this.riverTexture,
+            emissiveIntensity: 1.2,
+            roughness: 0.1,
+            metalness: 0.8,
             transparent: true,
-            opacity: 0.8
+            opacity: 0.85
         });
+
         const river = new THREE.Mesh(riverGeo, riverMat);
         river.rotation.x = -Math.PI / 2;
         river.position.set(25, 0.01, 0);
@@ -208,6 +259,13 @@ export class Engine {
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         });
+    }
+
+    update(dt) {
+        if (this.riverTexture) {
+            // Fa scorrere l'acqua verso sud (asse Z positivo)
+            this.riverTexture.offset.y -= 0.25 * dt;
+        }
     }
 
     render() {
