@@ -150,7 +150,10 @@ export class LocalPlayer {
         }
 
         if (!this.isGrounded) {
-            this.velocityY -= this.gravity * dt;
+            // Se sta salendo e NON tiene premuto Spazio, applichiamo una gravità maggiore per tagliare corto il salto (sfioramento)
+            const currentGravity = (this.velocityY > 0 && !input.keys.Space) ? (this.gravity * 2.4) : this.gravity;
+            
+            this.velocityY -= currentGravity * dt;
             this.mesh.position.y += this.velocityY * dt;
 
             // Collisione con il pavimento (livello 0)
