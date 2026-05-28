@@ -300,7 +300,7 @@ class Game {
                 shareBtn.addEventListener('click', () => this.copyShareLink());
 
                 // Annuncia stanza su MQTT per la lista dei Mondi Aperti
-                this.lobby.startAnnouncing(roomOwnerId, nickname);
+                this.lobby.startAnnouncing(roomOwnerId, nickname, this.network.activeTurnApp, this.network.activeTurnKey);
             } else {
                 lobbyStatus.textContent = 'Connessione all\'Host...';
                 this.showToast('Ricerca e connessione all\'Host in corso...', false);
@@ -427,7 +427,7 @@ class Game {
             if (isHost) {
                 if (lobbyStatus) lobbyStatus.textContent = 'Host (Lobby Pubblica)';
                 if (shareBtn) shareBtn.classList.remove('hidden');
-                this.lobby.startAnnouncing(roomOwnerId, this.localPlayer.nickname);
+                this.lobby.startAnnouncing(roomOwnerId, this.localPlayer.nickname, this.network.activeTurnApp, this.network.activeTurnKey);
             } else {
                 if (lobbyStatus) lobbyStatus.textContent = 'Connesso a Stanza Pubblica';
                 if (shareBtn) shareBtn.classList.add('hidden');
@@ -610,7 +610,7 @@ class Game {
 
         // Annuncia la nostra stanza su MQTT dato che siamo diventati Host
         if (this.lobby) {
-            this.lobby.startAnnouncing(this.network.myId, this.localPlayer.nickname);
+            this.lobby.startAnnouncing(this.network.myId, this.localPlayer.nickname, this.network.activeTurnApp, this.network.activeTurnKey);
         }
 
         this.showToast('L\'Host precedente non è raggiungibile. Ora sei tu l\'Host di questa stanza!', false);

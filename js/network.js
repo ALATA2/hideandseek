@@ -12,6 +12,10 @@ export class NetworkManager {
         this.hostId = null;
         this.isPublicLobby = false;
 
+        // Chiavi TURN attive usate nella sessione corrente
+        this.activeTurnApp = null;
+        this.activeTurnKey = null;
+
         // Rileva hash all'avvio
         this.parseHashParams();
     }
@@ -99,8 +103,18 @@ export class NetworkManager {
         ];
 
         // Recupera le credenziali Metered.ca da localStorage (se presenti)
-        const meteredAppName = localStorage.getItem('metered_app_name');
-        const meteredApiKey = localStorage.getItem('metered_api_key');
+        let meteredAppName = localStorage.getItem('metered_app_name');
+        let meteredApiKey = localStorage.getItem('metered_api_key');
+
+        // Se non configurate o vuote, usa il fallback predefinito del gioco (hideandseek / PqdU...)
+        if (!meteredAppName || !meteredAppName.trim() || !meteredApiKey || !meteredApiKey.trim()) {
+            meteredAppName = 'hideandseek';
+            meteredApiKey = 'PqdUeZbm3JHFxi63frFMh2maevaX9dXzuaGaKacPDs3TdM6c';
+        }
+
+        // Salva le credenziali effettivamente in uso
+        this.activeTurnApp = meteredAppName;
+        this.activeTurnKey = meteredApiKey;
 
         if (meteredAppName && meteredApiKey) {
             console.log(`[P2P] Rilevate credenziali Metered.ca. Caricamento server ICE privati...`);
@@ -464,20 +478,16 @@ export class NetworkManager {
     updateLobbyUrl() {
         // Aggiorna l'hash URL con il Peer ID dell'host corrente e include i dettagli TURN se presenti
         let hash = `host=${this.myId}`;
-        const meteredAppName = localStorage.getItem('metered_app_name');
-        const meteredApiKey = localStorage.getItem('metered_api_key');
-        if (meteredAppName && meteredApiKey) {
-            hash += `&turnApp=${encodeURIComponent(meteredAppName)}&turnKey=${encodeURIComponent(meteredApiKey)}`;
+        if (this.activeTurnApp && this.activeTurnKey) {
+            hash += `&turnApp=${encodeURIComponent(this.activeTurnApp)}&turnKey=${encodeURIComponent(this.activeTurnKey)}`;
         }
         window.location.hash = hash;
     }
 
     getInviteLink() {
         let link = `${window.location.origin}${window.location.pathname}#host=${this.hostId}`;
-        const meteredAppName = localStorage.getItem('metered_app_name');
-        const meteredApiKey = localStorage.getItem('metered_api_key');
-        if (meteredAppName && meteredApiKey) {
-            link += `&turnApp=${encodeURIComponent(meteredAppName)}&turnKey=${encodeURIComponent(meteredApiKey)}`;
+        if (this.activeTurnApp && this.activeTurnKey) {
+            link += `&turnApp=${encodeURIComponent(this.activeTurnApp)}&turnKey=${encodeURIComponent(this.activeTurnKey)}`;
         }
         return link;
     }
@@ -492,5 +502,7 @@ export class NetworkManager {
         this.connections = {};
         this.isHost = false;
         this.hostId = null;
+        this.activeTurnApp = null;
+        this.activeTurnKey = null;
     }
 }

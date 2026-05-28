@@ -10,9 +10,11 @@ export class LobbyDiscovery {
     }
 
     // --- FUNZIONE PER L'HOST: Annuncia la propria presenza ---
-    startAnnouncing(peerId, hostName) {
+    startAnnouncing(peerId, hostName, turnApp = null, turnKey = null) {
         if (this.isAnnouncing) return;
         this.isAnnouncing = true;
+        this.turnApp = turnApp;
+        this.turnKey = turnKey;
 
         console.log('[Lobby] Avvio annuncio stanza su MQTT...');
         
@@ -46,15 +48,12 @@ export class LobbyDiscovery {
     sendAnnouncement(peerId, hostName) {
         if (!this.client || !this.client.connected) return;
 
-        const meteredAppName = localStorage.getItem('metered_app_name');
-        const meteredApiKey = localStorage.getItem('metered_api_key');
-
         const payload = JSON.stringify({
             peerId: peerId,
             hostName: hostName,
             timestamp: Date.now(),
-            turnApp: meteredAppName || undefined,
-            turnKey: meteredApiKey || undefined
+            turnApp: this.turnApp || undefined,
+            turnKey: this.turnKey || undefined
         });
 
         // Pubblica sul canale specifico di questa stanza con retain: true
