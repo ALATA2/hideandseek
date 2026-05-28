@@ -34,46 +34,70 @@ export class NetworkManager {
         this.startPeerConnection(onReady);
     }
 
-    startPeerConnection(onReady, forceAsHost = false) {
+    async startPeerConnection(onReady, forceAsHost = false) {
         const peerId = forceAsHost ? 'hideandseek-lobby-public-room-global' : undefined;
         
         if (this.peer) {
             try { this.peer.destroy(); } catch(e) {}
         }
 
+        let iceServers = [
+            // Google STUN per connessioni dirette veloci (molteplici server per ridondanza)
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
+            // Open Relay TLS TURN su porta standard 443 (UDP e TCP)
+            {
+                urls: 'turns:openrelay.metered.ca:443',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+            },
+            {
+                urls: 'turns:openrelay.metered.ca:443?transport=tcp',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+            },
+            // Open Relay TURN non-TLS su porta standard 3478 (UDP)
+            {
+                urls: 'turn:openrelay.metered.ca:3478',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+            },
+            // Open Relay TURN non-TLS su porta standard 80 (TCP)
+            {
+                urls: 'turn:openrelay.metered.ca:80',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+            }
+        ];
+
+        // Recupera le credenziali Metered.ca da localStorage (se presenti)
+        const meteredAppName = localStorage.getItem('metered_app_name');
+        const meteredApiKey = localStorage.getItem('metered_api_key');
+
+        if (meteredAppName && meteredApiKey) {
+            console.log(`[P2P] Rilevate credenziali Metered.ca. Caricamento server ICE privati...`);
+            try {
+                const response = await fetch(`https://${meteredAppName}.metered.live/api/v1/turn/credentials?apiKey=${meteredApiKey}`);
+                if (response.ok) {
+                    const fetchedIceServers = await response.json();
+                    if (Array.isArray(fetchedIceServers) && fetchedIceServers.length > 0) {
+                        iceServers = fetchedIceServers;
+                        console.log(`[P2P] Server ICE privati caricati correttamente da metered.ca:`, iceServers);
+                    }
+                } else {
+                    console.warn(`[P2P] Risposta non valida dal server Metered: Status ${response.status}. Utilizzo i server pubblici di fallback.`);
+                }
+            } catch (err) {
+                console.error(`[P2P] Errore durante il fetch dei server ICE da Metered.ca. Utilizzo i server pubblici di fallback:`, err);
+            }
+        }
+
         this.peer = new Peer(peerId, {
             config: {
-                iceServers: [
-                    // Google STUN per connessioni dirette veloci (molteplici server per ridondanza)
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'stun:stun2.l.google.com:19302' },
-                    { urls: 'stun:stun3.l.google.com:19302' },
-                    { urls: 'stun:stun4.l.google.com:19302' },
-                    // Open Relay TLS TURN su porta standard 443 (UDP e TCP)
-                    {
-                        urls: 'turns:openrelay.metered.ca:443',
-                        username: 'openrelayproject',
-                        credential: 'openrelayproject'
-                    },
-                    {
-                        urls: 'turns:openrelay.metered.ca:443?transport=tcp',
-                        username: 'openrelayproject',
-                        credential: 'openrelayproject'
-                    },
-                    // Open Relay TURN non-TLS su porta standard 3478 (UDP)
-                    {
-                        urls: 'turn:openrelay.metered.ca:3478',
-                        username: 'openrelayproject',
-                        credential: 'openrelayproject'
-                    },
-                    // Open Relay TURN non-TLS su porta standard 80 (TCP)
-                    {
-                        urls: 'turn:openrelay.metered.ca:80',
-                        username: 'openrelayproject',
-                        credential: 'openrelayproject'
-                    }
-                ]
+                iceServers: iceServers
             },
             debug: 0
         });

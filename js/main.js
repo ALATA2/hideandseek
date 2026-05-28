@@ -50,11 +50,32 @@ class Game {
         this.closeDebugBtn = document.getElementById('close-debug-btn');
         this.copyDebugBtn = document.getElementById('copy-debug-btn');
         this.downloadDebugBtn = document.getElementById('download-debug-btn');
+
+        // Advanced Network/TURN UI Refs
+        this.toggleNetworkSettingsBtn = document.getElementById('toggle-network-settings-btn');
+        this.networkSettingsPanel = document.getElementById('network-settings-panel');
+        this.meteredAppNameInput = document.getElementById('metered-app-name');
+        this.meteredApiKeyInput = document.getElementById('metered-api-key');
         
         this.initUI();
     }
 
     initUI() {
+        // Pre-compila le chiavi Metered se salvate precedentemente
+        if (this.meteredAppNameInput && this.meteredApiKeyInput) {
+            this.meteredAppNameInput.value = localStorage.getItem('metered_app_name') || '';
+            this.meteredApiKeyInput.value = localStorage.getItem('metered_api_key') || '';
+        }
+
+        // Event listener per mostrare/nascondere il pannello avanzato
+        if (this.toggleNetworkSettingsBtn && this.networkSettingsPanel) {
+            this.toggleNetworkSettingsBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.networkSettingsPanel.classList.toggle('hidden');
+            });
+        }
+
         // Rileva se stiamo entrando come Guest per informare l'utente
         if (this.network.hostId && !this.network.isHost) {
             const roomInfo = document.getElementById('room-info-section');
@@ -240,6 +261,12 @@ class Game {
     startGame() {
         let nickname = this.nicknameInput.value.trim();
         
+        // Salva le configurazioni di rete se presenti
+        if (this.meteredAppNameInput && this.meteredApiKeyInput) {
+            localStorage.setItem('metered_app_name', this.meteredAppNameInput.value.trim());
+            localStorage.setItem('metered_api_key', this.meteredApiKeyInput.value.trim());
+        }
+
         // Assegna nickname casuale se vuoto
         if (!nickname) {
             nickname = 'User_' + Math.floor(1000 + Math.random() * 9000);

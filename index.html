@@ -88,6 +88,63 @@
                 <input type="text" id="nickname-input" placeholder="Nickname..." maxlength="15" autocomplete="off">
             </div>
 
+            <div class="network-settings-toggle" style="margin-top: -12px; margin-bottom: 14px; text-align: left;">
+                <button type="button" id="toggle-network-settings-btn" style="
+                    background: none; 
+                    border: none; 
+                    color: var(--text-muted); 
+                    font-size: 0.72rem; 
+                    cursor: pointer; 
+                    display: flex; 
+                    align-items: center; 
+                    gap: 6px;
+                    padding: 4px;
+                    font-family: var(--font-body);
+                ">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <span>Impostazioni avanzate NAT/TURN (4G/5G mobile)</span>
+                </button>
+            </div>
+            
+            <div id="network-settings-panel" class="hidden" style="
+                background: rgba(0, 0, 0, 0.4);
+                border: 1px solid var(--card-border);
+                border-radius: 12px;
+                padding: 16px;
+                margin-bottom: 20px;
+                text-align: left;
+            ">
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label for="metered-app-name" style="font-size: 0.65rem; margin-bottom: 4px;">Metered.ca App Name (es. app-name)</label>
+                    <input type="text" id="metered-app-name" placeholder="es. xxxxx" autocomplete="off" style="
+                        width: 100%;
+                        background: rgba(0,0,0,0.5);
+                        border: 1px solid rgba(255,255,255,0.08);
+                        border-radius: 8px;
+                        padding: 8px 12px;
+                        color: #fff;
+                        font-size: 0.85rem;
+                        font-family: var(--font-body);
+                    ">
+                </div>
+                <div class="form-group" style="margin-bottom: 10px;">
+                    <label for="metered-api-key" style="font-size: 0.65rem; margin-bottom: 4px;">Metered.ca API Key</label>
+                    <input type="password" id="metered-api-key" placeholder="Incolla qui la tua API Key..." autocomplete="off" style="
+                        width: 100%;
+                        background: rgba(0,0,0,0.5);
+                        border: 1px solid rgba(255,255,255,0.08);
+                        border-radius: 8px;
+                        padding: 8px 12px;
+                        color: #fff;
+                        font-size: 0.85rem;
+                        font-family: var(--font-body);
+                    ">
+                </div>
+                <p style="font-size: 0.65rem; color: var(--text-muted); line-height: 1.45; margin: 0;">
+                    Lascia vuoto per usare il server pubblico standard. Se hai problemi di connessione in 4G/5G, registrati gratuitamente su <a href="https://www.metered.ca" target="_blank" style="color: var(--primary-glow); text-decoration: underline;">metered.ca</a> (senza carta di credito) e incolla qui le chiavi.
+                </p>
+            </div>
+
             <div id="room-info-section" class="info-box hidden">
                 <span class="info-label">Stai per entrare nella stanza di:</span>
                 <span id="target-host-display" class="info-value">...</span>
