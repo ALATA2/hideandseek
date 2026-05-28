@@ -44,17 +44,32 @@ export class NetworkManager {
         this.peer = new Peer(peerId, {
             config: {
                 iceServers: [
-                    // Google STUN per connessioni dirette veloci
+                    // Google STUN per connessioni dirette veloci (molteplici server per ridondanza)
                     { urls: 'stun:stun.l.google.com:19302' },
-                    // Open Relay TLS TURN su UDP (essenziale per contesti HTTPS)
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' },
+                    { urls: 'stun:stun3.l.google.com:19302' },
+                    { urls: 'stun:stun4.l.google.com:19302' },
+                    // Open Relay TLS TURN su porta standard 443 (UDP e TCP)
                     {
                         urls: 'turns:openrelay.metered.ca:443',
                         username: 'openrelayproject',
                         credential: 'openrelayproject'
                     },
-                    // Open Relay TLS TURN su TCP (bypass totale per NAT simmetrici e firewall carrier)
                     {
                         urls: 'turns:openrelay.metered.ca:443?transport=tcp',
+                        username: 'openrelayproject',
+                        credential: 'openrelayproject'
+                    },
+                    // Open Relay TURN non-TLS su porta standard 3478 (UDP)
+                    {
+                        urls: 'turn:openrelay.metered.ca:3478',
+                        username: 'openrelayproject',
+                        credential: 'openrelayproject'
+                    },
+                    // Open Relay TURN non-TLS su porta standard 80 (TCP)
+                    {
+                        urls: 'turn:openrelay.metered.ca:80',
                         username: 'openrelayproject',
                         credential: 'openrelayproject'
                     }
