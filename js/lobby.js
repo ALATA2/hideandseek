@@ -46,10 +46,15 @@ export class LobbyDiscovery {
     sendAnnouncement(peerId, hostName) {
         if (!this.client || !this.client.connected) return;
 
+        const meteredAppName = localStorage.getItem('metered_app_name');
+        const meteredApiKey = localStorage.getItem('metered_api_key');
+
         const payload = JSON.stringify({
             peerId: peerId,
             hostName: hostName,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            turnApp: meteredAppName || undefined,
+            turnKey: meteredApiKey || undefined
         });
 
         // Pubblica sul canale specifico di questa stanza con retain: true
@@ -99,7 +104,9 @@ export class LobbyDiscovery {
                 this.rooms[data.peerId] = {
                     peerId: data.peerId,
                     hostName: data.hostName,
-                    timestamp: data.timestamp
+                    timestamp: data.timestamp,
+                    turnApp: data.turnApp,
+                    turnKey: data.turnKey
                 };
 
                 // Filtra stanze scadute (nessun segnale da più di 40 secondi)

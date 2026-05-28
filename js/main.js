@@ -367,7 +367,23 @@ class Game {
                 // Imposta il host target
                 this.network.hostId = room.peerId;
                 this.network.isHost = false;
-                window.location.hash = `#host=${room.peerId}`;
+
+                // Se la stanza fornisce chiavi TURN, le salviamo per connetterci
+                if (room.turnApp && room.turnKey) {
+                    localStorage.setItem('metered_app_name', room.turnApp);
+                    localStorage.setItem('metered_api_key', room.turnKey);
+                    if (this.meteredAppNameInput && this.meteredApiKeyInput) {
+                        this.meteredAppNameInput.value = room.turnApp;
+                        this.meteredApiKeyInput.value = room.turnKey;
+                    }
+                }
+
+                // Genera l'URL con le chiavi accodate per la propagazione
+                let hash = `host=${room.peerId}`;
+                if (room.turnApp && room.turnKey) {
+                    hash += `&turnApp=${encodeURIComponent(room.turnApp)}&turnKey=${encodeURIComponent(room.turnKey)}`;
+                }
+                window.location.hash = `#${hash}`;
                 
                 // Mostra a schermo l'info della stanza target nel menu di avvio
                 const roomInfoSec = document.getElementById('room-info-section');

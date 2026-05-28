@@ -11,6 +11,34 @@ export class NetworkManager {
         this.isHost = false;
         this.hostId = null;
         this.isPublicLobby = false;
+
+        // Rileva hash all'avvio
+        this.parseHashParams();
+    }
+
+    parseHashParams() {
+        const hash = window.location.hash;
+        if (hash && hash.includes('host=')) {
+            const params = {};
+            // Rimuove il '#' ed effettua il parsing dei parametri
+            hash.substring(1).split('&').forEach(pair => {
+                const [key, val] = pair.split('=');
+                if (key && val) {
+                    params[key] = decodeURIComponent(val);
+                }
+            });
+
+            if (params.host) {
+                this.hostId = params.host;
+                this.isHost = false;
+            }
+
+            // Se il link di invito contiene le configurazioni TURN dell'host, le importiamo in automatico
+            if (params.turnApp && params.turnKey) {
+                localStorage.setItem('metered_app_name', params.turnApp);
+                localStorage.setItem('metered_api_key', params.turnKey);
+            }
+        }
     }
 
     init(nickname, onReady, isPublicLobby = false) {
@@ -21,12 +49,9 @@ export class NetworkManager {
             this.hostId = 'hideandseek-lobby-public-room-global';
             this.isHost = false;
         } else {
-            // Verifica se siamo entrati tramite link di invito
-            const hash = window.location.hash;
-            if (hash && hash.startsWith('#host=')) {
-                this.hostId = hash.replace('#host=', '');
-                this.isHost = false;
-            } else {
+            // Rileva hash per sicurezza se è cambiato dall'avvio
+            this.parseHashParams();
+            if (!this.hostId) {
                 this.isHost = true;
             }
         }
@@ -437,12 +462,24 @@ export class NetworkManager {
     }
 
     updateLobbyUrl() {
-        // Aggiorna l'hash URL con il Peer ID dell'host corrente
-        window.location.hash = `host=${this.myId}`;
+        // Aggiorna l'hash URL con il Peer ID dell'host corrente e include i dettagli TURN se presenti
+        let hash = `host=${this.myId}`;
+        const meteredAppName = localStorage.getItem('metered_app_name');
+        const meteredApiKey = localStorage.getItem('metered_api_key');
+        if (meteredAppName && meteredApiKey) {
+            hash += `&turnApp=${encodeURIComponent(meteredAppName)}&turnKey=${encodeURIComponent(meteredApiKey)}`;
+        }
+        window.location.hash = hash;
     }
 
     getInviteLink() {
-        return `${window.location.origin}${window.location.pathname}#host=${this.hostId}`;
+        let link = `${window.location.origin}${window.location.pathname}#host=${this.hostId}`;
+        const meteredAppName = localStorage.getItem('metered_app_name');
+        const meteredApiKey = localStorage.getItem('metered_api_key');
+        if (meteredAppName && meteredApiKey) {
+            link += `&turnApp=${encodeURIComponent(meteredAppName)}&turnKey=${encodeURIComponent(meteredApiKey)}`;
+        }
+        return link;
     }
 
     disconnectAll() {
@@ -453,5 +490,7 @@ export class NetworkManager {
             this.peer.destroy();
         }
         this.connections = {};
+        this.isHost = false;
+        this.hostId = null;
     }
 }
