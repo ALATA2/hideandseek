@@ -221,7 +221,7 @@ export class NetworkManager {
             // Se sono l'Host, ho il compito di inoltrare la lista di tutti i partecipanti al nuovo Guest
             if (this.isHost) {
                 this.sendPeerListTo(conn);
-                this.broadcastSystemMessage(`${conn.metadata.nickname || 'Un nuovo giocatore'} è entrato nella stanza.`);
+                this.broadcastSystemMessage(`${conn.metadata?.nickname || 'Un nuovo giocatore'} è entrato nella stanza.`);
             } else {
                 // Se sono un Guest e mi sono connesso all'Host, aggiorna lo stato HUD
                 if (peerId === this.hostId) {
@@ -232,7 +232,7 @@ export class NetworkManager {
             }
 
             // Notifica il gioco per istanziare l'avatar remoto
-            this.game.addRemotePlayer(peerId, conn.metadata.nickname || 'Giocatore', { x: 0, y: 0, z: 0 });
+            this.game.addRemotePlayer(peerId, conn.metadata?.nickname || 'Giocatore', { x: 0, y: 0, z: 0 });
             this.game.updateOnlineCount();
         });
 
@@ -385,7 +385,7 @@ export class NetworkManager {
 
     removePeer(peerId) {
         if (this.connections[peerId]) {
-            const nickname = this.connections[peerId].metadata.nickname || 'Un giocatore';
+            const nickname = this.connections[peerId].metadata?.nickname || 'Un giocatore';
             delete this.connections[peerId];
             
             if (this.isHost) {
