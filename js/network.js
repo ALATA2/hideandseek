@@ -119,7 +119,23 @@ export class NetworkManager {
         if (meteredAppName && meteredApiKey) {
             console.log(`[P2P] Rilevate credenziali Metered.ca. Caricamento server ICE privati...`);
             try {
-                const response = await fetch(`https://${meteredAppName}.metered.live/api/v1/turn/credentials?apiKey=${meteredApiKey}`);
+                let response = await fetch(`https://${meteredAppName}.metered.live/api/v1/turn/credentials?apiKey=${meteredApiKey}`);
+                if (!response.ok && response.status === 401) {
+                    console.log(`[P2P] GET ha restituito 401. Provo ad utilizzare la chiave come Secret Key via POST...`);
+                    const postResponse = await fetch(`https://${meteredAppName}.metered.live/api/v1/turn/credential?secretKey=${meteredApiKey}`, {
+                        method: 'POST'
+                    });
+                    if (postResponse.ok) {
+                        const data = await postResponse.json();
+                        if (data.apiKey) {
+                            console.log(`[P2P] Credenziale temporanea creata con successo. Recupero server ICE...`);
+                            response = await fetch(`https://${meteredAppName}.metered.live/api/v1/turn/credentials?apiKey=${data.apiKey}`);
+                        }
+                    } else {
+                        console.warn(`[P2P] Anche il tentativo di POST è fallito con status: ${postResponse.status}`);
+                    }
+                }
+
                 if (response.ok) {
                     const fetchedIceServers = await response.json();
                     if (Array.isArray(fetchedIceServers) && fetchedIceServers.length > 0) {
